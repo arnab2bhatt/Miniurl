@@ -1,0 +1,1 @@
+console.loh=g("controller");
