@@ -6,3 +6,5 @@ router.post('/shorten', createShortLink);
 router.get('/:shortcode', redirectToLongUrl);
 
 module.exports = router;
+
+

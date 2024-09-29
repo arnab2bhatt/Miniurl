@@ -42,6 +42,15 @@ const createShortLink = async (req, res) => {
         res.status(500).json({message: 'server error'});
     }
 };
+
+const checkAuth = (req, res, next) => {
+    const userId = req.signedCookies.userId;
+    if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+    next();
+};
+
 const redirectToLongUrl = async (req, res) => {
     const { shortcode } = req.params;
     try {

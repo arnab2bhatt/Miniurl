@@ -1,14 +1,14 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../database');
 const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken'); // If using JWT tokens
+const jwt = require('jsonwebtoken'); 
 
-// Use cookieParser middleware
+
 const express = require('express');
 const app = express();
-app.use(cookieParser('your_secret_key')); // Signed cookie
+app.use(cookieParser('your_secret_key')); 
 
-// Signup function remains the same
+
 const signup = async (req, res) => {
     console.log("Request body:", req.body);
     const { email, password } = req.body;
@@ -43,7 +43,7 @@ const signup = async (req, res) => {
     }
 };
 
-// Login function with cookie parser implemented
+
 const login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -60,24 +60,24 @@ const login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        // Create a token or session (JWT in this case)
+        
         const token = jwt.sign({ userId: user.rows[0].id }, 'jwt_secret_key', { expiresIn: '1h' });
 
-        // Cookie options
+        
         let options = {
-            maxAge: 1000 * 60 * 15,  // Expires after 15 minutes
-            httpOnly: true,           // Cookie cannot be accessed via JavaScript
-            signed: true              // Signed with the secret key
+            maxAge: 1000 * 60 * 15,  
+            httpOnly: true,           
+            signed: true              
         };
 
-        // Set the cookie
+        
         res.cookie('userId', user.rows[0].id, options);
         res.cookie('authToken', token, options);
 
-        // Set additional headers if necessary
+        
         res.set('User-ID', user.rows[0].id);
 
-        // Respond to the client
+        
         res.json({ message: 'Logged in successfully', token });
     } catch (error) {
         console.error(error.message);
