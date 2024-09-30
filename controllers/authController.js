@@ -1,13 +1,36 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../database');
 const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken'); 
-
-
+const jwt = require('jsonwebtoken');
 const express = require('express');
-const app = express();
-app.use(cookieParser('your_secret_key')); 
 
+const app = express();
+app.use(cookieParser('your_secret_key'));
+
+
+const jwtSecretKey = 'jwt_secret_key';
+
+
+const generateToken = (userId) => {
+    return jwt.sign({ userId }, jwtSecretKey, { expiresIn: '1h' });
+};
+
+
+const verifyToken = (req, res, next) => {
+    const token = req.signedCookies.authToken;
+
+    if (!token) {
+        return res.status(401).json({ message: 'Access Denied: No token provided' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, jwtSecretKey);
+        req.userId = decoded.userId; 
+        next();
+    } catch (err) {
+        return res.status(400).json({ message: 'Invalid Token' });
+    }
+};
 
 const signup = async (req, res) => {
     console.log("Request body:", req.body);
@@ -43,7 +66,6 @@ const signup = async (req, res) => {
     }
 };
 
-
 const login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -61,21 +83,17 @@ const login = async (req, res) => {
         }
 
         
-        const token = jwt.sign({ userId: user.rows[0].id }, 'jwt_secret_key', { expiresIn: '1h' });
+        const token = generateToken(user.rows[0].id);
 
-        
         let options = {
             maxAge: 1000 * 60 * 15,  
             httpOnly: true,           
-            signed: true              
+            signed: true             
         };
 
         
         res.cookie('userId', user.rows[0].id, options);
         res.cookie('authToken', token, options);
-
-        
-        res.set('User-ID', user.rows[0].id);
 
         
         res.json({ message: 'Logged in successfully', token });
@@ -85,11 +103,11 @@ const login = async (req, res) => {
     }
 };
 
-// Logout function to clear cookies
+
 const logout = (req, res) => {
-    res.clearCookie('authtoken');
-    res.clearCookie('userId',{signed: true});
+    res.clearCookie('authToken');
+    res.clearCookie('userId', { signed: true });
     res.json({ message: 'Logged out successfully' });
 };
 
-module.exports = { signup, login, logout };
+module.exports = { signup, login, logout, verifyToken };
