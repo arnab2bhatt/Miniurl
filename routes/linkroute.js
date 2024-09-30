@@ -3,7 +3,6 @@ const {createShortLink, redirectToLongUrl} = require('../controllers/linkcontrol
 const router = express.Router();
 
 router.post('/shorten', createShortLink);
-router.get('/:shortcode', redirectToLongUrl);
 
 module.exports = router;
 
