@@ -51,24 +51,5 @@ const checkAuth = (req, res, next) => {
     next();
 };
 
-const redirectToLongUrl = async (req, res) => {
-    const { shortcode } = req.params;
-    try {
-        const linkQuery = 'SELECT * FROM links WHERE shortcode = $1';
-        const linkResult = await pool.query(linkQuery, [shortcode]);
-        if (linkResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Short URL not found' });
-        }
-        const link = linkResult.rows[0];
-        // Check for expires_at
-        if (link.expires_at && new Date(link.expires_at) < new Date()) {
-            return res.status(410).json({ message: 'Short URL has expired' });
-        }
-        // Redirect to the long URL
-        res.redirect(link.long_url);
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-module.exports = {createShortLink, redirectToLongUrl};
+
+module.exports = {createShortLink};
