@@ -2,35 +2,35 @@ const bcrypt = require('bcryptjs');
 const pool = require('../database');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 const express = require('express');
 
 const app = express();
-app.use(cookieParser('your_secret_key'));
 
 
-const jwtSecretKey = 'jwt_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 
-const generateToken = (userId) => {
-    return jwt.sign({ userId }, jwtSecretKey, { expiresIn: '1h' });
+const generateToken = (user) => {
+    return jwt.sign({ id : user.id , email : user.email }, JWT_SECRET, { expiresIn: '1h' });
 };
 
 
-const verifyToken = (req, res, next) => {
-    const token = req.signedCookies.authToken;
+// const verifyToken = (req, res, next) => {
+//     const token = req.signedCookies.authToken;
 
-    if (!token) {
-        return res.status(401).json({ message: 'Access Denied: No token provided' });
-    }
+//     if (!token) {
+//         return res.status(401).json({ message: 'Access Denied: No token provided' });
+//     }
 
-    try {
-        const decoded = jwt.verify(token, jwtSecretKey);
-        req.userId = decoded.userId; 
-        next();
-    } catch (err) {
-        return res.status(400).json({ message: 'Invalid Token' });
-    }
-};
+//     try {
+//         const decoded = jwt.verify(token, jwtSecretKey);
+//         req.userId = decoded.userId; 
+//         next();
+//     } catch (err) {
+//         return res.status(400).json({ message: 'Invalid Token' });
+//     }
+// };
 
 const signup = async (req, res) => {
     console.log("Request body:", req.body);
@@ -83,20 +83,14 @@ const login = async (req, res) => {
         }
 
         
-        const token = generateToken(user.rows[0].id);
-
-        let options = {
-            maxAge: 1000 * 60 * 15,  
-            httpOnly: true,           
-            signed: true             
-        };
+        const token = generateToken(user.rows[0]);
 
         
-        res.cookie('userId', user.rows[0].id, options);
-        res.cookie('authToken', token, options);
-
-        
-        res.json({ message: 'Logged in successfully', token });
+        res.json({ message: 'Logged in successfully',
+            token: token,
+        user: {
+            email: user.rows[0].email
+        } });
     } catch (error) {
         console.error(error.message);
         res.status(500).json({ message: 'Server error' });
@@ -105,9 +99,9 @@ const login = async (req, res) => {
 
 
 const logout = (req, res) => {
-    res.clearCookie('authToken');
-    res.clearCookie('userId', { signed: true });
+    // res.clearCookie('authToken');
+    // res.clearCookie('userId', { signed: true });
     res.json({ message: 'Logged out successfully' });
 };
 
-module.exports = { signup, login, logout, verifyToken };
+module.exports = { signup, login, logout };

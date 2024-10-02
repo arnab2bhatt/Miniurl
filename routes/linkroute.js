@@ -1,8 +1,8 @@
 const express = require('express');
-const {createShortLink, redirectToLongUrl} = require('../controllers/linkcontroller');
+const {createShortLink, authenticateJWT} = require('../controllers/linkcontroller');
 const router = express.Router();
 
-router.post('/shorten', createShortLink);
+router.post('/shorten', authenticateJWT, createShortLink);
 
 module.exports = router;
 
