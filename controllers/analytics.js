@@ -1,15 +1,14 @@
 const geoip = require('geoip-lite');
-const useragent = require('useragent');
+const UAParser = require('ua-parser-js');
 const pool = require('../database');
-
 
 const trackAndRedirectLink = async (req, res) => {
     const shortcode = req.params.shortcode;
     const ipAddress = req.headers['x-forwarded-for'] || req.ip; 
-    const userAgent = req.headers['user-agent'];  
+    const userAgentString = req.headers['user-agent'];  
 
     try {
-        
+        // Get the original link from the database
         const linkQuery = 'SELECT * FROM links WHERE shortcode = $1';
         const linkResult = await pool.query(linkQuery, [shortcode]);
 
@@ -19,7 +18,7 @@ const trackAndRedirectLink = async (req, res) => {
 
         const linkId = linkResult.rows[0].linkid;
 
-        
+        // Get geolocation data from the user's IP address
         const geo = geoip.lookup(ipAddress);
         const location = geo
             ? {
@@ -30,13 +29,15 @@ const trackAndRedirectLink = async (req, res) => {
               }
             : { country: 'Unknown', region: 'Unknown' };
 
-        
-        const agent = useragent.parse(userAgent);
-        const browser = `${agent.family} ${agent.major}`;
-        const os = `${agent.os.family} ${agent.os.major}`;
-        const device = agent.device.family || 'Desktop';
+        // Parse the user agent string to get detailed device information
+        const parser = new UAParser();
+        const agent = parser.setUA(userAgentString).getResult();
 
-        
+        const browser = `${agent.browser.name} ${agent.browser.version || ''}`;
+        const os = `${agent.os.name} ${agent.os.version || ''}`;
+        const device = agent.device.type || 'Desktop'; // Detects the device type (smartphone, tablet, desktop, etc.)
+
+        // Insert the click event into the database
         const insertClickQuery = `
             INSERT INTO clicks (link_id, timestamp, ip_address, country, region, latitude, longitude, browser, os, device)
             VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, $8, $9)
@@ -52,8 +53,8 @@ const trackAndRedirectLink = async (req, res) => {
             os,
             device,
         ]);
- 
 
+        // Redirect the user to the long URL
         res.redirect(linkResult.rows[0].long_url);
     } catch (error) {
         console.error(error.message);
@@ -61,17 +62,13 @@ const trackAndRedirectLink = async (req, res) => {
     }
 };
 
-
-
-
-
 const getAnalytics = async (req, res) => {
     const shortcode = req.params.shortcode;
 
     console.log(`Fetching analytics for short URL: ${shortcode}`);
 
     try {
-        
+        // Get link information from the database
         const linkQuery = 'SELECT linkid,long_url FROM links WHERE shortcode = $1';
         const linkResult = await pool.query(linkQuery, [shortcode]);
 
@@ -83,7 +80,7 @@ const getAnalytics = async (req, res) => {
         const linkid = linkResult.rows[0].linkid;
         console.log(`Found link with ID: ${linkid}`);
 
-        
+        // Get the clicks per day for this link
         const clicksPerDayQuery = `
             SELECT COUNT(*) AS clicks, DATE(timestamp) AS day
             FROM clicks
@@ -93,7 +90,7 @@ const getAnalytics = async (req, res) => {
         `;
         const clicksPerDay = await pool.query(clicksPerDayQuery, [linkid]);
 
-        
+        // Get the clicks per week for this link
         const clicksPerWeekQuery = `
             SELECT COUNT(*) AS clicks, DATE_TRUNC('week', timestamp) AS week
             FROM clicks
@@ -105,7 +102,7 @@ const getAnalytics = async (req, res) => {
 
         console.log('Analytics data retrieved successfully');
 
-        
+        // Return the analytics data as JSON
         res.json({ clicksPerDay: clicksPerDay.rows, clicksPerWeek: clicksPerWeek.rows });
     } catch (error) {
         console.error('Error fetching analytics:', error.message);

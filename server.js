@@ -18,7 +18,7 @@ app.use('/authroute', authRoutes);
 
 // Protected Routes (Apply JWT middleware to routes that require authentication)
 app.use('/linkroute', authenticateJWT, linkRoutes);
-app.use('links/:shortcode',anaRoutes);
+app.use('/links',anaRoutes);
 app.use('/links/analytics',authenticateJWT, anaRoutes); // Assuming the analytics routes are protected as well
 
 // Start the server
