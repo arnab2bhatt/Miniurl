@@ -27,38 +27,49 @@ const generateShortCode = () => {
 };
 
 const createShortLink = async (req, res) => {
-    const { long_url, name, expires_at } = req.body;
+    const { long_url, mobile_url, name, expires_at, custom_shortcode } = req.body;
 
-    // Check if the user is logged in (user ID should be present in the request object)
-    if (!req.user || !req.user.id) {
-        return res.status(403).json({ message: 'URL shortening is not allowed after logout.' });
-    }
-
-    // Ensure the long_url is provided
+    // Ensure long_url is provided
     if (!long_url) {
         return res.status(400).json({ message: 'Long URL is required' });
     }
 
+    // Check if the user is logged in
+    if (!req.user || !req.user.id) {
+        return res.status(403).json({ message: 'URL shortening is not allowed after logout.' });
+    }
+
     try {
-        let shortcode;
+        let shortcode = custom_shortcode;
         let shortcodeExists = true;
 
-        // Generate a unique shortcode
-        while (shortcodeExists) {
-            shortcode = generateShortCode();
+        // Check if the custom shortcode is provided and valid, or generate a new one
+        if (custom_shortcode) {
             const codeCheckQuery = 'SELECT * FROM links WHERE shortcode = $1';
-            const existingLink = await pool.query(codeCheckQuery, [shortcode]);
-            if (existingLink.rows.length === 0) {
-                shortcodeExists = false;
+            const existingLink = await pool.query(codeCheckQuery, [custom_shortcode]);
+            if (existingLink.rows.length > 0) {
+                return res.status(400).json({ message: 'Custom shortcode already exists' });
+            } else {
+                shortcodeExists = false; // Custom shortcode is unique
+            }
+        } else {
+            // Generate a unique shortcode if custom one isn't provided
+            while (shortcodeExists) {
+                shortcode = generateShortCode();
+                const codeCheckQuery = 'SELECT * FROM links WHERE shortcode = $1';
+                const existingLink = await pool.query(codeCheckQuery, [shortcode]);
+                if (existingLink.rows.length === 0) {
+                    shortcodeExists = false; // Generated shortcode is unique
+                }
             }
         }
 
-        // Insert the new link into the database with the creator_id (userId)
+        // Insert the new link into the database with mobile_url and long_url
         const insertLinkQuery = `
-            INSERT INTO links(long_url, shortcode, name, created_at, expires_at, creator_id)
-            VALUES ($1, $2, $3, DEFAULT, $4, $5)
+            INSERT INTO links(long_url, mobile_url, shortcode, name, created_at, expires_at, creator_id)
+            VALUES ($1, $2, $3, $4, DEFAULT, $5, $6)
             RETURNING *`;
-        const newLink = await pool.query(insertLinkQuery, [long_url, shortcode, name || null, expires_at || null, req.user.id]);
+        const newLink = await pool.query(insertLinkQuery, [long_url, mobile_url || null, shortcode, name || null, expires_at || null, req.user.id]);
 
         res.status(201).json({
             message: 'Link shortened successfully',
@@ -70,6 +81,7 @@ const createShortLink = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 const getShortLink = async (req, res) => {
     const { shortcode } = req.params;

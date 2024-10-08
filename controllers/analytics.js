@@ -4,8 +4,8 @@ const pool = require('../database');
 
 const trackAndRedirectLink = async (req, res) => {
     const shortcode = req.params.shortcode;
-    const ipAddress = req.headers['x-forwarded-for'] || req.ip; 
-    const userAgentString = req.headers['user-agent'];  
+    const ipAddress = req.headers['x-forwarded-for'] || req.ip;
+    const userAgentString = req.headers['user-agent'];
 
     try {
         // Get the original link from the database
@@ -17,6 +17,8 @@ const trackAndRedirectLink = async (req, res) => {
         }
 
         const linkId = linkResult.rows[0].linkid;
+        const longUrl = linkResult.rows[0].long_url;
+        const mobileUrl = linkResult.rows[0].mobile_url;
 
         // Get geolocation data from the user's IP address
         const geo = geoip.lookup(ipAddress);
@@ -29,7 +31,7 @@ const trackAndRedirectLink = async (req, res) => {
               }
             : { country: 'Unknown', region: 'Unknown' };
 
-        // Parse the user agent string to get detailed device information
+        // Parse the user agent string to get device information
         const parser = new UAParser();
         const agent = parser.setUA(userAgentString).getResult();
 
@@ -54,8 +56,12 @@ const trackAndRedirectLink = async (req, res) => {
             device,
         ]);
 
-        // Redirect the user to the long URL
-        res.redirect(linkResult.rows[0].long_url);
+        // Redirect based on device type
+        if ((device === 'smartphone' || device === 'mobile') && mobileUrl) {
+            res.redirect(mobileUrl); // Redirect to mobile URL if accessed through mobile
+        } else {
+            res.redirect(longUrl); // Otherwise, redirect to long URL
+        }
     } catch (error) {
         console.error(error.message);
         res.status(500).json({ message: 'Server error' });
