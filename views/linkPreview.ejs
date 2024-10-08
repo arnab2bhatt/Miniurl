@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="<%= link.name %>">
+    <meta property="og:description" content="<%= link.description || 'Check out this link!' %>">
+    <meta property="og:image" content="<%= link.image_url || '/default-image.jpg' %>">
+    <meta property="og:url" content="http://localhost:3000/<%= link.shortcode %>">
+    <title><%= link.name %></title>
+</head>
+<body>
+    <h1><%= link.name %></h1>
+    <p>Visit: <a href="<%= link.long_url %>"><%= link.long_url %></a></p>
+</body>
+</html>

@@ -1,6 +1,7 @@
 const express = require('express');
 const authRoutes = require('./routes/authroute');
 const linkRoutes = require('./routes/linkroute');
+const path = require('path');
 const cookieParser = require('cookie-parser');
 const anaRoutes = require('./routes/anaroutes');
 const { verifyToken } = require('./routes/authroute'); // Import the JWT middleware for protected routes
@@ -8,6 +9,9 @@ const { authenticateJWT } = require('./controllers/linkcontroller');
 
 const app = express();
 const port = 3000;
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views')); 
 
 // Middleware to parse JSON and handle cookies
 app.use(express.json());

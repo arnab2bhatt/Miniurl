@@ -5,6 +5,7 @@
     "cheerio": "^1.0.0",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
     "express": "^4.21.0",
     "geoip-lite": "^1.4.10",
     "jsonwebtoken": "^9.0.2",
