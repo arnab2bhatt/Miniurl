@@ -83,25 +83,29 @@ const createShortLink = async (req, res) => {
 };
 
 
-const getShortLink = async (req, res) => {
-    const { shortcode } = req.params;
+
+// Function to fetch all shortcodes for the logged-in user
+const getAllShortcodes = async (req, res) => {
+    const userId = req.user.id; // Assuming `req.user` contains authenticated user data
 
     try {
-        const linkQuery = 'SELECT * FROM links WHERE shortcode = $1';
-        const linkResult = await pool.query(linkQuery, [shortcode]);
+        // SQL query to retrieve all shortcodes for the current user
+        const query = `SELECT shortcode FROM links WHERE creator_id = $1 ORDER BY created_at DESC`;
+        const result = await pool.query(query, [userId]);
 
-        if (linkResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Link not found' });
-        }
+        // Format the shortcodes as URLs
+        const formattedLinks = result.rows.map(row => ({
+            shortUrl: `https://arnab.site/links/${row.shortcode}`
+        }));
 
-        const link = linkResult.rows[0];
-
-        // Render the EJS view with link details
-        res.render('linkPreview', { link });
+        // Send the formatted short URLs as the response
+        res.status(200).json(formattedLinks);
     } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error fetching links:', error);
+        res.status(500).json({ message: 'Error fetching links' });
     }
 };
 
-module.exports = { createShortLink, getShortLink, authenticateJWT };
+
+module.exports = { createShortLink, authenticateJWT, getAllShortcodes };
+
